@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+:root {
+  --primary-color: #3b82f6;
+  --bg-light: #ffffff;
+  --bg-dark: #1f2937;
+  --text-light: #111827;
+  --text-dark: #f3f4f6;
+  --border-light: #e5e7eb;
+  --border-dark: #374151;
+  --success-bg: #ecfdf5;
+  --success-border: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
+.html-quick-edit-popup {
+  background: var(--bg-light);
+  color: var(--text-light);
+  border: 1px solid var(--border-light);
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  width: 460px;
+  max-width: 90vw;
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.html-quick-edit-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-align: center;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.html-quick-edit-guide {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 12px;
+  font-style: italic;
+  text-align: center;
+}
+
+.html-quick-edit-textarea {
+  width: 100%;
+  height: 160px;
+  padding: 14px;
+  font-size: 15px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: #f9fafb;
+  color: var(--text-light);
+  resize: vertical;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.html-quick-edit-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+
+
+.html-quick-edit-credit {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+  margin-top: 16px;
+  font-style: italic;
+}
+
+@media (prefers-color-scheme: dark) {
+  .html-quick-edit-popup {
+    background: var(--bg-dark);
+    border-color: var(--border-dark);
+    color: var(--text-dark);
+  }
+
+  .html-quick-edit-textarea {
+    background: #374151;
+    color: var(--text-dark);
+    border-color: var(--border-dark);
+  }
+
+  .html-quick-edit-textarea:focus {
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+  }
+
+  .html-quick-edit-credit {
+    color: #9ca3af;
+  }
+
+  .html-quick-edit-guide {
+    color: #9ca3af;
+  }
+}
+
+@media (max-width: 600px) {
+  .html-quick-edit-popup {
+    padding: 16px;
+    width: 90vw;
+  }
+
+  .html-quick-edit-title {
+    font-size: 18px;
+  }
+
+  .html-quick-edit-textarea {
+    height: 120px;
+    font-size: 14px;
+  }
+}
+
+:root {
+  --success-bg-dark: #064e3b; /* Dark mode background for text-changed */
+}
+
+/* Light mode effect */
+.html-quick-edit-textarea.text-changed {
+  background-color: var(--success-bg);
+  border-color: var(--success-border);
+}
+
+/* Dark mode override */
+@media (prefers-color-scheme: dark) {
+  .html-quick-edit-textarea.text-changed {
+    background-color: var(--success-bg-dark);
+    border-color: var(--success-border);
+  }
+}
