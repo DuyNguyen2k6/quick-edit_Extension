@@ -39,6 +39,17 @@
       visibility: visible;
       opacity: 1;
     }
+
+    /* Ẩn scrollbar nhưng vẫn scroll được */
+    #html-quick-edit-popup,
+    #html-quick-edit-popup textarea {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none;  /* IE 10+ */
+    }
+    #html-quick-edit-popup::-webkit-scrollbar,
+    #html-quick-edit-popup textarea::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Edge */
+    }
   `;
   document.head.appendChild(style);
 })();
@@ -151,7 +162,9 @@ function createEditorPopup(selectedText, range) {
   Object.assign(popup.style, {
     position: "fixed",
     zIndex: "1000000",
-    background: isDarkMode ? "#121212" : "#f9f9f9",
+    background: isDarkMode
+      ? "rgba(18, 18, 18, 0.75)"  // dark glassmorphism
+      : "rgba(249, 249, 249, 0.9)", // light glassmorphism
     color: isDarkMode ? "#e0e0e0" : "#1c1c1c",
     borderRadius: "16px",
     boxShadow: isDarkMode
@@ -161,16 +174,23 @@ function createEditorPopup(selectedText, range) {
     minWidth: "380px",
     maxWidth: "90vw",
     maxHeight: "70vh",
-    left: "50%",
-    top: "50%",
-    transform: "translate(-50%, -50%) scale(0.9)",
     opacity: "0",
-    transition: "opacity 0.3s ease, transform 0.3s ease",
+    visibility: "hidden",
+    transform: "scale(0.8)",
+    transition: "opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease",
     display: "flex",
     flexDirection: "column",
     fontFamily:
       "SF Pro Text, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
     userSelect: "text",
+
+    backdropFilter: isDarkMode ? "blur(20px) saturate(180%)" : "blur(10px)",
+    WebkitBackdropFilter: isDarkMode ? "blur(20px) saturate(180%)" : "blur(10px)",
+    border: isDarkMode
+      ? "1px solid rgba(255, 255, 255, 0.15)"
+      : "1px solid rgba(0, 0, 0, 0.1)",
+
+    overflowY: "auto",
   });
 
   const header = document.createElement("div");
@@ -193,8 +213,12 @@ function createEditorPopup(selectedText, range) {
     flexGrow: "1",
     width: "100%",
     borderRadius: "16px",
-    border: isDarkMode ? "1.5px solid #555" : "1.5px solid #d1d1d6",
-    backgroundColor: isDarkMode ? "#222" : "#ffffff",
+    border: isDarkMode
+      ? "1.5px solid rgba(255, 255, 255, 0.3)"
+      : "1.5px solid rgba(0, 0, 0, 0.1)",
+    backgroundColor: isDarkMode
+      ? "rgba(255, 255, 255, 0.1)"
+      : "rgba(255, 255, 255, 0.7)",
     color: isDarkMode ? "#eee" : "#1c1c1e",
     fontSize: "16px",
     fontFamily: "inherit",
@@ -204,11 +228,17 @@ function createEditorPopup(selectedText, range) {
     transition: "border-color 0.3s ease",
     boxSizing: "border-box",
     minHeight: "130px",
+    backdropFilter: isDarkMode ? "blur(12px) saturate(180%)" : "blur(8px)",
+    WebkitBackdropFilter: isDarkMode ? "blur(12px) saturate(180%)" : "blur(8px)",
+
+    overflowY: "auto",
   });
   textarea.oninput = () => {
     textarea.style.borderColor = isDarkMode ? "#90caf9" : "#007aff";
     setTimeout(() => {
-      textarea.style.borderColor = isDarkMode ? "#555" : "#d1d1d6";
+      textarea.style.borderColor = isDarkMode
+        ? "rgba(255, 255, 255, 0.3)"
+        : "rgba(0, 0, 0, 0.1)";
     }, 500);
   };
   textarea.onkeydown = (e) => {
@@ -234,40 +264,71 @@ function createEditorPopup(selectedText, range) {
   });
   popup.appendChild(infoText);
 
+  // Thêm popup vào DOM trước để đo kích thước
+  document.body.appendChild(popup);
+
+  // Đo popup và tính vị trí pixel tuyệt đối giữa màn hình
+  const popupRect = popup.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let currentX = (viewportWidth - popupRect.width) / 2;
+  let currentY = (viewportHeight - popupRect.height) / 2;
+
+  // Gán vị trí pixel tuyệt đối, bỏ transform (sẽ có transform scale, nhưng vị trí cố định)
+  popup.style.left = `${currentX}px`;
+  popup.style.top = `${currentY}px`;
+  popup.style.transformOrigin = "center center";
+
+  // Hiệu ứng Zoom & Fade mở popup
+  setTimeout(() => {
+    popup.style.visibility = "visible";
+    popup.style.opacity = "1";
+    popup.style.transform = "scale(1)";
+  }, 10);
+
+  // Hàm đóng popup với hiệu ứng thu nhỏ và mờ dần
+  function closePopup() {
+    popup.style.opacity = "0";
+    popup.style.transform = "scale(0.8)";
+    popup.style.visibility = "hidden";
+    setTimeout(() => {
+      if (popup.parentNode) {
+        popup.parentNode.removeChild(popup);
+      }
+    }, 300);
+  }
+
   popup.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      saveChanges();
+      try {
+        const cleanedText = sanitizeText(textarea.value);
+        replaceTextInRange(range, cleanedText);
+        showSnackbar("Changes saved!");
+        closePopup();
+      } catch (error) {
+        showSnackbar("Error saving changes.");
+        console.error(error);
+      }
     } else if (e.key === "Escape") {
-      popup.remove();
+      closePopup();
     }
   });
 
-  function saveChanges() {
-    try {
-      const cleanedText = sanitizeText(textarea.value);
-      replaceTextInRange(range, cleanedText);
-
-      showSnackbar("Changes saved!");
-
-      popup.remove();
-    } catch (error) {
-      showSnackbar("Error saving changes.");
-      console.error(error);
-    }
-  }
-
-  // Drag & drop logic
+  // Drag functionality
   let isDragging = false,
-    currentX = 0,
-    currentY = 0,
     initialX = 0,
-    initialY = 0;
+    initialY = 0,
+    currentXPos = currentX,
+    currentYPos = currentY;
 
   header.addEventListener("mousedown", (e) => {
     isDragging = true;
-    initialX = e.clientX - currentX;
-    initialY = e.clientY - currentY;
+
+    initialX = e.clientX - currentXPos;
+    initialY = e.clientY - currentYPos;
+
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
   });
@@ -275,16 +336,17 @@ function createEditorPopup(selectedText, range) {
   function onMouseMove(e) {
     if (isDragging) {
       e.preventDefault();
-      currentX = e.clientX - initialX;
-      currentY = e.clientY - initialY;
-      const popupRect = popup.getBoundingClientRect();
-      const maxX = window.innerWidth - popupRect.width;
-      const maxY = window.innerHeight - popupRect.height;
-      currentX = Math.max(0, Math.min(currentX, maxX));
-      currentY = Math.max(0, Math.min(currentY, maxY));
-      popup.style.left = `${currentX}px`;
-      popup.style.top = `${currentY}px`;
-      popup.style.transform = "none";
+
+      currentXPos = e.clientX - initialX;
+      currentYPos = e.clientY - initialY;
+
+      const maxX = window.innerWidth - popup.offsetWidth;
+      const maxY = window.innerHeight - popup.offsetHeight;
+      currentXPos = Math.max(0, Math.min(currentXPos, maxX));
+      currentYPos = Math.max(0, Math.min(currentYPos, maxY));
+
+      popup.style.left = currentXPos + "px";
+      popup.style.top = currentYPos + "px";
     }
   }
 
@@ -293,13 +355,6 @@ function createEditorPopup(selectedText, range) {
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", onMouseUp);
   }
-
-  document.body.appendChild(popup);
-
-  setTimeout(() => {
-    popup.style.opacity = "1";
-    popup.style.transform = "translate(-50%, -50%) scale(1)";
-  }, 10);
 
   textarea.focus();
 }
