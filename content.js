@@ -1,3 +1,58 @@
+// Chèn CSS snackbar vào trang
+(function insertSnackbarCSS() {
+  const style = document.createElement("style");
+  style.textContent = `
+    #snackbar {
+      visibility: hidden;
+      min-width: 250px;
+      background-color: #323232;
+      color: #fff;
+      text-align: center;
+      border-radius: 8px;
+      padding: 14px 24px;
+      position: fixed;
+      left: 50%;
+      bottom: 30px;
+      font-size: 16px;
+      transform: translateX(-50%);
+      z-index: 1000001;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.4s ease, visibility 0.4s;
+    }
+    #snackbar.show {
+      visibility: visible;
+      opacity: 1;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+// Hàm hiện snackbar
+function showSnackbar(message, duration = 3000) {
+  let snackbar = document.getElementById("snackbar");
+  if (snackbar) {
+    snackbar.remove();
+  }
+
+  snackbar = document.createElement("div");
+  snackbar.id = "snackbar";
+  snackbar.textContent = message;
+
+  document.body.appendChild(snackbar);
+
+  setTimeout(() => {
+    snackbar.classList.add("show");
+  }, 100);
+
+  setTimeout(() => {
+    snackbar.classList.remove("show");
+    setTimeout(() => {
+      if (snackbar.parentNode) snackbar.parentNode.removeChild(snackbar);
+    }, 400);
+  }, duration + 100);
+}
+
 // Lắng nghe message từ background để mở popup
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
@@ -12,24 +67,6 @@ window.addEventListener("message", (event) => {
     createEditorPopup(selectedText, range);
   }
 });
-
-function showNotification(message, type = "error") {
-  const notification = document.createElement("div");
-  notification.style.position = "fixed";
-  notification.style.top = "10px";
-  notification.style.right = "10px";
-  notification.style.padding = "10px 20px";
-  notification.style.background = type === "error" ? "#e53935" : "#1e88e5";
-  notification.style.color = "white";
-  notification.style.borderRadius = "12px";
-  notification.style.fontWeight = "600";
-  notification.style.fontFamily = "Segoe UI, Tahoma, Geneva, Verdana, sans-serif";
-  notification.style.zIndex = "1000000";
-  notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
-  notification.innerText = message;
-  document.body.appendChild(notification);
-  setTimeout(() => notification.remove(), 3000);
-}
 
 function sanitizeText(text) {
   const div = document.createElement("div");
@@ -97,15 +134,14 @@ function createEditorPopup(selectedText, range) {
   const popup = document.createElement("div");
   popup.id = "html-quick-edit-popup";
 
-  // Đặt style theo mode
   Object.assign(popup.style, {
     position: "fixed",
     zIndex: "1000000",
     background: isDarkMode ? "#121212" : "#f9f9f9",
     color: isDarkMode ? "#e0e0e0" : "#1c1c1c",
     borderRadius: "16px",
-    boxShadow: isDarkMode 
-      ? "0 6px 20px rgba(0,0,0,0.8)" 
+    boxShadow: isDarkMode
+      ? "0 6px 20px rgba(0,0,0,0.8)"
       : "0 6px 20px rgba(0,0,0,0.15)",
     padding: "20px",
     minWidth: "380px",
@@ -113,10 +149,13 @@ function createEditorPopup(selectedText, range) {
     maxHeight: "70vh",
     left: "50%",
     top: "50%",
-    transform: "translate(-50%, -50%)",
+    transform: "translate(-50%, -50%) scale(0.9)",
+    opacity: "0",
+    transition: "opacity 0.3s ease, transform 0.3s ease",
     display: "flex",
     flexDirection: "column",
-    fontFamily: "SF Pro Text, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    fontFamily:
+      "SF Pro Text, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
     userSelect: "text",
   });
 
@@ -198,10 +237,13 @@ function createEditorPopup(selectedText, range) {
     try {
       const cleanedText = sanitizeText(textarea.value);
       replaceTextInRange(range, cleanedText);
-      showNotification("Changes saved!", "success");
+
+      // Hiện snackbar báo thành công
+      showSnackbar("Changes saved!");
+
       popup.remove();
     } catch (error) {
-      showNotification("Error saving: " + error.message);
+      showSnackbar("Error saving changes.");
       console.error(error);
     }
   }
@@ -243,6 +285,70 @@ function createEditorPopup(selectedText, range) {
     document.removeEventListener("mouseup", onMouseUp);
   }
 
+  // Thêm popup vào DOM trước
   document.body.appendChild(popup);
+
+  // Kích hoạt hiệu ứng popup fade + scale khi mở
+  setTimeout(() => {
+    popup.style.opacity = "1";
+    popup.style.transform = "translate(-50%, -50%) scale(1)";
+  }, 10);
+
   textarea.focus();
+}
+
+// Hàm hiện snackbar
+function showSnackbar(message, duration = 3000) {
+  let snackbar = document.getElementById("snackbar");
+  if (snackbar) {
+    snackbar.remove();
+  }
+
+  snackbar = document.createElement("div");
+  snackbar.id = "snackbar";
+  snackbar.textContent = message;
+
+  // Chèn style snackbar nếu chưa có
+  if (!document.getElementById("snackbar-style")) {
+    const style = document.createElement("style");
+    style.id = "snackbar-style";
+    style.textContent = `
+      #snackbar {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: #323232;
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+        padding: 14px 24px;
+        position: fixed;
+        left: 50%;
+        bottom: 30px;
+        font-size: 16px;
+        transform: translateX(-50%);
+        z-index: 1000001;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        opacity: 0;
+        transition: opacity 0.4s ease, visibility 0.4s;
+      }
+      #snackbar.show {
+        visibility: visible;
+        opacity: 1;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(snackbar);
+
+  setTimeout(() => {
+    snackbar.classList.add("show");
+  }, 100);
+
+  setTimeout(() => {
+    snackbar.classList.remove("show");
+    setTimeout(() => {
+      if (snackbar.parentNode) snackbar.parentNode.removeChild(snackbar);
+    }, 400);
+  }, duration + 100);
 }
