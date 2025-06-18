@@ -1,14 +1,15 @@
 // Chèn CSS snackbar vào trang
 (function insertSnackbarCSS() {
   const style = document.createElement("style");
+  style.id = "snackbar-style";
   style.textContent = `
     #snackbar {
       visibility: hidden;
       min-width: 250px;
-      background-color: #323232;
-      color: #fff;
+      background-color: rgba(255,255,255,0.95);
+      color: #222;
       text-align: center;
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 14px 24px;
       position: fixed;
       left: 50%;
@@ -16,9 +17,23 @@
       font-size: 16px;
       transform: translateX(-50%);
       z-index: 1000001;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
       opacity: 0;
       transition: opacity 0.4s ease, visibility 0.4s;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: 1px solid #ddd;
+    }
+    @media (prefers-color-scheme: dark) {
+      #snackbar {
+        background-color: rgba(20,20,20,0.75);
+        color: #eee;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        backdrop-filter: blur(12px) saturate(180%);
+        -webkit-backdrop-filter: blur(12px) saturate(180%);
+        border: 1px solid rgba(255,255,255,0.15);
+      }
     }
     #snackbar.show {
       visibility: visible;
@@ -128,7 +143,6 @@ function createEditorPopup(selectedText, range) {
   const existing = document.getElementById("html-quick-edit-popup");
   if (existing) existing.remove();
 
-  // Kiểm tra giao diện sáng hay tối
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   const popup = document.createElement("div");
@@ -159,7 +173,6 @@ function createEditorPopup(selectedText, range) {
     userSelect: "text",
   });
 
-  // Header
   const header = document.createElement("div");
   header.textContent = "Quick Edit by DuyNguyen2k6";
   Object.assign(header.style, {
@@ -174,7 +187,6 @@ function createEditorPopup(selectedText, range) {
   });
   popup.appendChild(header);
 
-  // Textarea
   const textarea = document.createElement("textarea");
   textarea.value = selectedText;
   Object.assign(textarea.style, {
@@ -211,7 +223,6 @@ function createEditorPopup(selectedText, range) {
   };
   popup.appendChild(textarea);
 
-  // Info text
   const infoText = document.createElement("div");
   infoText.textContent = "Press Enter to save, Escape to cancel, Tab for new line.";
   Object.assign(infoText.style, {
@@ -223,7 +234,6 @@ function createEditorPopup(selectedText, range) {
   });
   popup.appendChild(infoText);
 
-  // Keyboard shortcuts
   popup.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -238,7 +248,6 @@ function createEditorPopup(selectedText, range) {
       const cleanedText = sanitizeText(textarea.value);
       replaceTextInRange(range, cleanedText);
 
-      // Hiện snackbar báo thành công
       showSnackbar("Changes saved!");
 
       popup.remove();
@@ -285,70 +294,12 @@ function createEditorPopup(selectedText, range) {
     document.removeEventListener("mouseup", onMouseUp);
   }
 
-  // Thêm popup vào DOM trước
   document.body.appendChild(popup);
 
-  // Kích hoạt hiệu ứng popup fade + scale khi mở
   setTimeout(() => {
     popup.style.opacity = "1";
     popup.style.transform = "translate(-50%, -50%) scale(1)";
   }, 10);
 
   textarea.focus();
-}
-
-// Hàm hiện snackbar
-function showSnackbar(message, duration = 3000) {
-  let snackbar = document.getElementById("snackbar");
-  if (snackbar) {
-    snackbar.remove();
-  }
-
-  snackbar = document.createElement("div");
-  snackbar.id = "snackbar";
-  snackbar.textContent = message;
-
-  // Chèn style snackbar nếu chưa có
-  if (!document.getElementById("snackbar-style")) {
-    const style = document.createElement("style");
-    style.id = "snackbar-style";
-    style.textContent = `
-      #snackbar {
-        visibility: hidden;
-        min-width: 250px;
-        background-color: #323232;
-        color: #fff;
-        text-align: center;
-        border-radius: 8px;
-        padding: 14px 24px;
-        position: fixed;
-        left: 50%;
-        bottom: 30px;
-        font-size: 16px;
-        transform: translateX(-50%);
-        z-index: 1000001;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        opacity: 0;
-        transition: opacity 0.4s ease, visibility 0.4s;
-      }
-      #snackbar.show {
-        visibility: visible;
-        opacity: 1;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  document.body.appendChild(snackbar);
-
-  setTimeout(() => {
-    snackbar.classList.add("show");
-  }, 100);
-
-  setTimeout(() => {
-    snackbar.classList.remove("show");
-    setTimeout(() => {
-      if (snackbar.parentNode) snackbar.parentNode.removeChild(snackbar);
-    }, 400);
-  }, duration + 100);
 }
