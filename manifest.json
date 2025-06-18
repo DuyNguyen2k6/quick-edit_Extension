@@ -1,9 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "HTML Quick Edit",
-  "version": "1.8",
-  "description": "Chỉnh sửa nội dung HTML nhanh bằng chuột phải",
-  "permissions": ["contextMenus", "scripting", "activeTab", "storage"],
+  "name": "Quick Edit",
+  "version": "2.0",
+  "description": "Edit selected text via context menu",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "scripting"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -11,11 +15,19 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "css": ["styles.css"]
+      "run_at": "document_idle"
     }
   ],
-  "host_permissions": ["http://*/*", "https://*/*"],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "48": "icon.png"
+  },
   "action": {
-    "default_title": "HTML Quick Edit"
+    "default_icon": {
+      "48": "icon.png"
+    },
+    "default_title": "Quick Edit Popup"
   }
 }

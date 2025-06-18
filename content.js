@@ -1,13 +1,31 @@
+// Lắng nghe message từ background để mở popup
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  if (event.data && event.data.type === "OPEN_QUICK_EDIT") {
+    const selectedText = event.data.text;
+    if (!selectedText) return;
+
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+
+    createEditorPopup(selectedText, range);
+  }
+});
+
 function showNotification(message, type = "error") {
   const notification = document.createElement("div");
   notification.style.position = "fixed";
   notification.style.top = "10px";
   notification.style.right = "10px";
-  notification.style.padding = "10px";
-  notification.style.background = type === "error" ? "#f44336" : "#4caf50";
+  notification.style.padding = "10px 20px";
+  notification.style.background = type === "error" ? "#e53935" : "#1e88e5";
   notification.style.color = "white";
-  notification.style.borderRadius = "4px";
-  notification.style.zIndex = "10000";
+  notification.style.borderRadius = "12px";
+  notification.style.fontWeight = "600";
+  notification.style.fontFamily = "Segoe UI, Tahoma, Geneva, Verdana, sans-serif";
+  notification.style.zIndex = "1000000";
+  notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
   notification.innerText = message;
   document.body.appendChild(notification);
   setTimeout(() => notification.remove(), 3000);
@@ -17,19 +35,6 @@ function sanitizeText(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.textContent;
-}
-
-function saveEditHistory(originalText, newText) {
-  chrome.storage.local.get({ editHistory: [] }, (data) => {
-    const history = data.editHistory;
-    history.push({
-      timestamp: new Date().toISOString(),
-      original: originalText,
-      edited: newText,
-    });
-    if (history.length > 50) history.shift();
-    chrome.storage.local.set({ editHistory });
-  });
 }
 
 function replaceTextInRange(range, newText) {
@@ -86,37 +91,74 @@ function createEditorPopup(selectedText, range) {
   const existing = document.getElementById("html-quick-edit-popup");
   if (existing) existing.remove();
 
+  // Kiểm tra giao diện sáng hay tối
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
   const popup = document.createElement("div");
   popup.id = "html-quick-edit-popup";
-  popup.className = "html-quick-edit-popup";
-  popup.style.position = "fixed";
-  popup.style.zIndex = "10000";
-  popup.style.left = "0px";
-  popup.style.top = "0px";
 
-  const fontAwesome = document.createElement("link");
-  fontAwesome.rel = "stylesheet";
-  fontAwesome.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css";
-  document.head.appendChild(fontAwesome);
+  // Đặt style theo mode
+  Object.assign(popup.style, {
+    position: "fixed",
+    zIndex: "1000000",
+    background: isDarkMode ? "#121212" : "#f9f9f9",
+    color: isDarkMode ? "#e0e0e0" : "#1c1c1c",
+    borderRadius: "16px",
+    boxShadow: isDarkMode 
+      ? "0 6px 20px rgba(0,0,0,0.8)" 
+      : "0 6px 20px rgba(0,0,0,0.15)",
+    padding: "20px",
+    minWidth: "380px",
+    maxWidth: "90vw",
+    maxHeight: "70vh",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    display: "flex",
+    flexDirection: "column",
+    fontFamily: "SF Pro Text, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    userSelect: "text",
+  });
 
-  const title = document.createElement("h3");
-  title.className = "html-quick-edit-title";
-  const icon = document.createElement("i");
-  icon.className = "fas fa-pencil-alt";
-  title.appendChild(icon);
-  title.appendChild(document.createTextNode(" CHỈNH SỬA NỘI DUNG"));
-  title.style.textAlign = "center";
+  // Header
+  const header = document.createElement("div");
+  header.textContent = "Quick Edit by DuyNguyen2k6";
+  Object.assign(header.style, {
+    fontWeight: "700",
+    fontSize: "18px",
+    marginBottom: "15px",
+    textAlign: "center",
+    cursor: "move",
+    userSelect: "none",
+    color: isDarkMode ? "#ddd" : "#1c1c1e",
+    letterSpacing: "0.05em",
+  });
+  popup.appendChild(header);
 
-  const guide = document.createElement("div");
-  guide.className = "html-quick-edit-guide";
-  guide.textContent = "Nhấn Enter để lưu, Escape để hủy, Tab để xuống dòng.";
-
+  // Textarea
   const textarea = document.createElement("textarea");
   textarea.value = selectedText;
-  textarea.className = "html-quick-edit-textarea";
+  Object.assign(textarea.style, {
+    flexGrow: "1",
+    width: "100%",
+    borderRadius: "16px",
+    border: isDarkMode ? "1.5px solid #555" : "1.5px solid #d1d1d6",
+    backgroundColor: isDarkMode ? "#222" : "#ffffff",
+    color: isDarkMode ? "#eee" : "#1c1c1e",
+    fontSize: "16px",
+    fontFamily: "inherit",
+    padding: "15px",
+    resize: "vertical",
+    outline: "none",
+    transition: "border-color 0.3s ease",
+    boxSizing: "border-box",
+    minHeight: "130px",
+  });
   textarea.oninput = () => {
-    textarea.classList.add("text-changed");
-    setTimeout(() => textarea.classList.remove("text-changed"), 300);
+    textarea.style.borderColor = isDarkMode ? "#90caf9" : "#007aff";
+    setTimeout(() => {
+      textarea.style.borderColor = isDarkMode ? "#555" : "#d1d1d6";
+    }, 500);
   };
   textarea.onkeydown = (e) => {
     if (e.key === "Tab") {
@@ -124,40 +166,54 @@ function createEditorPopup(selectedText, range) {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       textarea.value =
-        textarea.value.substring(0, start) +
-        "\n" +
-        textarea.value.substring(end);
+        textarea.value.substring(0, start) + "\n" + textarea.value.substring(end);
       textarea.selectionStart = textarea.selectionEnd = start + 1;
     }
   };
+  popup.appendChild(textarea);
 
-  const credit = document.createElement("div");
-  credit.className = "html-quick-edit-credit";
-  credit.textContent = "Extension này được làm bởi Duy Nguyễn 2kar6";
+  // Info text
+  const infoText = document.createElement("div");
+  infoText.textContent = "Press Enter to save, Escape to cancel, Tab for new line.";
+  Object.assign(infoText.style, {
+    marginTop: "12px",
+    fontSize: "12px",
+    color: isDarkMode ? "#999" : "#8e8e93",
+    textAlign: "center",
+    userSelect: "none",
+  });
+  popup.appendChild(infoText);
 
-  popup.onkeydown = (e) => {
+  // Keyboard shortcuts
+  popup.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      try {
-        const cleanedText = sanitizeText(textarea.value);
-        replaceTextInRange(range, cleanedText);
-        saveEditHistory(selectedText, cleanedText);
-        popup.remove();
-        showNotification("Đã lưu thay đổi!", "success");
-      } catch (error) {
-        showNotification("Lỗi khi lưu: " + error.message);
-        console.error("Lỗi khi lưu:", error);
-      }
+      saveChanges();
     } else if (e.key === "Escape") {
       popup.remove();
     }
-  };
+  });
 
-  // Kéo thả
-  let isDragging = false, currentX = 0, currentY = 0, initialX = 0, initialY = 0;
+  function saveChanges() {
+    try {
+      const cleanedText = sanitizeText(textarea.value);
+      replaceTextInRange(range, cleanedText);
+      showNotification("Changes saved!", "success");
+      popup.remove();
+    } catch (error) {
+      showNotification("Error saving: " + error.message);
+      console.error(error);
+    }
+  }
 
-  title.style.cursor = "move";
-  title.addEventListener("mousedown", (e) => {
+  // Drag & drop logic
+  let isDragging = false,
+    currentX = 0,
+    currentY = 0,
+    initialX = 0,
+    initialY = 0;
+
+  header.addEventListener("mousedown", (e) => {
     isDragging = true;
     initialX = e.clientX - currentX;
     initialY = e.clientY - currentY;
@@ -187,44 +243,6 @@ function createEditorPopup(selectedText, range) {
     document.removeEventListener("mouseup", onMouseUp);
   }
 
-  popup.appendChild(title);
-  popup.appendChild(guide);
-  popup.appendChild(textarea);
-  popup.appendChild(credit);
   document.body.appendChild(popup);
-
-  // Căn giữa chính xác sau 2 lần render
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const rect = popup.getBoundingClientRect();
-      currentX = (window.innerWidth - rect.width) / 2;
-      currentY = (window.innerHeight - rect.height) / 2;
-      popup.style.left = `${currentX}px`;
-      popup.style.top = `${currentY}px`;
-      textarea.focus();
-    });
-  });
+  textarea.focus();
 }
-
-(function () {
-  try {
-    const selection = window.getSelection();
-    if (!selection.rangeCount || selection.isCollapsed) {
-      return;
-    }
-
-    const range = selection.getRangeAt(0);
-    const selectedText = selection.toString();
-    const rect = range.getBoundingClientRect();
-
-    if (!rect.width || !rect.height) {
-      showNotification("Vùng chọn không hợp lệ!");
-      return;
-    }
-
-    createEditorPopup(selectedText, range);
-  } catch (error) {
-    showNotification("Lỗi khi khởi tạo: " + error.message);
-    console.error("Lỗi trong content.js:", error);
-  }
-})();
