@@ -2,9 +2,8 @@
   "manifest_version": 3,
   "name": "Quick Edit",
   "version": "2.0",
-  "description": "Edit selected text via context menu",
+  "description": "Chỉnh sửa văn bản đã chọn thông qua menu chuột phải",
   "permissions": [
-    "storage",
     "contextMenus",
     "scripting"
   ],
